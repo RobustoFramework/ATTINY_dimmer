@@ -70,8 +70,8 @@ void tearDown(void) {
     printf("AVR simulator terminated.\n");
 }
 
-void run_avr_for_cycles(int cycles) {
-    for (int i = 0; i < cycles; ++i) {
+void run_avr_for_cycles(uint32_t cycles) {
+    for (uint32_t i = 0; i < cycles; ++i) {
         avr_run(avr);
     }
 }
@@ -110,9 +110,6 @@ void print_mem (void) {
 }
 
 void test_pin_change(void) {
-    print_mem();
-    avr_run(avr);
-    print_mem();
     run_avr_for_cycles(100);
     printf("\n");
     print_mem();
@@ -134,51 +131,51 @@ void test_pin_change(void) {
     uint8_t initial_debug_state = debug_irq->value;
     uint8_t initial_button_pressed_state = button_pressed_irq->value;
     uint8_t initial_pwm_value = read_ocr0a(avr);  // Read initial PWM value
-    printf("Initial LED state: %d\n", initial_led_state);
-    printf("Initial DEBUG state: %d\n", initial_debug_state);
-    printf("Initial BUTTON_PRESSED state: %d\n", initial_button_pressed_state);
-    printf("Initial PWM value: %d\n", initial_pwm_value);
+    printf("Initial LED state: %hu\n", initial_led_state);
+    printf("Initial DEBUG state: %hu\n", initial_debug_state);
+    printf("Initial BUTTON_PRESSED state: %hu\n", initial_button_pressed_state);
+    printf("Initial PWM value: %hu\n", initial_pwm_value);
 
     // Simulate button press (PB3 low)
     printf("Pressing button (PB3 high)\n");
     avr_raise_irq(button_irq, 1);
-    run_avr_for_cycles(20000);  // Run enough cycles to process the button press
+    
+    run_avr_for_cycles(1000000);  // Run enough cycles to process the button press
     print_mem();
     // Check LED, DEBUG, and PWM states after button press
     uint8_t led_state = led_irq->value;
     uint8_t debug_state = debug_irq->value;
     uint8_t button_pressed_state = button_pressed_irq->value;
     uint8_t pwm_value = read_ocr0a(avr);  // Read PWM value after button press
-    printf("LED state after button press: %d\n", led_state);
-    printf("DEBUG state after button press: %d\n", debug_state);
-    printf("BUTTON_PRESSED state after button press: %d\n", button_pressed_state);
-    printf("PWM value after button press: %d\n", pwm_value);
+    printf("LED state after button press: %hu\n", led_state);
+    printf("DEBUG state after button press: %hu\n", debug_state);
+    printf("BUTTON_PRESSED state after button press: %hu\n", button_pressed_state);
+    printf("PWM value after button press: %hu\n", pwm_value);
 
     TEST_ASSERT_EQUAL(0, led_state);
     TEST_ASSERT_EQUAL(1, debug_state);
     TEST_ASSERT_EQUAL(1, button_pressed_state);
 
-    // Add delay to ensure the button press is registered correctly
-    run_avr_for_cycles(200000);
+
 
     // Simulate button release (PB3 high)
-    printf("Releasing button (PB3 high)\n");
+    printf("Releasing button (PB3 low)\n");
     avr_raise_irq(button_irq, 0);
     run_avr_for_cycles(20000);  // Run enough cycles to process the button release
-    print_mem();
     // Check LED, DEBUG, and PWM states after button release
     led_state = led_irq->value;
     debug_state = debug_irq->value;
     button_pressed_state = button_pressed_irq->value;
     pwm_value = read_ocr0a(avr);  // Read PWM value after button release
-    printf("LED state after button release: %d\n", led_state);
-    printf("DEBUG state after button release: %d\n", debug_state);
-    printf("BUTTON_PRESSED state after button release: %d\n", button_pressed_state);
-    printf("PWM value after button release: %d\n", pwm_value);
+    printf("LED state after button release: %hu\n", led_state);
+    printf("DEBUG state after button release: %hu\n", debug_state);
+    printf("BUTTON_PRESSED state after button release: %hu\n", button_pressed_state);
+    printf("PWM value after button release: %hu\n", pwm_value);
     TEST_ASSERT_EQUAL(0, debug_state);
     TEST_ASSERT_EQUAL(0, button_pressed_state);
-
-    printf("Completed test_pin_change. Dump:\n");
+    printf("\n");
+    print_mem();
+    printf("Completed test_pin_change.\n");
 
 }
 
@@ -188,7 +185,7 @@ int main(void) {
 
     UNITY_BEGIN();
     RUN_TEST(test_pin_change);
-    printf("Parsing VCD file...\n");
-    parse_vcd("trace.vcd");
+   // printf("Parsing VCD file...\n");
+   // parse_vcd("trace.vcd");
     return UNITY_END();
 }
