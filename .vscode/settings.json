@@ -25,6 +25,9 @@
         "utility": "c",
         "sim_io.h": "c",
         "sim_avr.h": "c",
-        "sim_cycle_timers.h": "c"
+        "sim_cycle_timers.h": "c",
+        "unistd.h": "c",
+        "sim_elf.h": "c",
+        "ncurses.h": "c"
     }
 }
