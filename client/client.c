@@ -1,15 +1,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <conio.h>
 #include <unistd.h>
-#include <ncurses.h>
-#include <simavr/sim_avr.h>
-#include <simavr/sim_elf.h>
-#include <simavr/sim_io.h>
-#include <simavr/sim_interrupts.h>
-#include <simavr/avr_ioport.h>
-#include <simavr/sim_vcd_file.h>
-#include <simavr/sim_cycle_timers.h>
+#include <stdbool.h>
+#include <sim_avr.h>
+#include <sim_elf.h>
+#include <sim_io.h>
+#include <sim_interrupts.h>
+#include <avr_ioport.h>
+#include <sim_vcd_file.h>
+#include <sim_cycle_timers.h>
 
 
 
@@ -25,63 +26,46 @@ avr_irq_t *button_pressed_irq;
 
 bool button_pressed = false;
 
-void init_ui(void) {
-    // NCurses
-
-    if (initscr() == NULL) {
-            printf("Error initializing ncurses.");
-            exit(-1);
-        }              // Initialize ncurses
-    printw("1");
-    cbreak();             // Disable line buffering
-    printw("2");
-    noecho();             // Don't echo key presses
-    printw("3");
-    nodelay(stdscr, TRUE); // Non-blocking input
-    printw("4");
-    keypad(stdscr, TRUE); // Enable special keys
-
-}
 
 void init_simavr(void) { 
     sim_log_prefix = "simavr";
-    printw("Setup");
+    printf("Setup");
 
 
     // Initialize the AVR simulator
     avr = avr_make_mcu_by_name("attiny85");
     if (!avr) {
-        printw("AVR '%s' not known", "attiny85");
+        printf("AVR '%s' not known", "attiny85");
         exit(1);
     }
 
 
     avr->frequency = 1000000L;
-    printw("Avr_init");
+    printf("Avr_init");
     avr_init(avr);
     elf_firmware_t f;
     memset(&f, 0, sizeof(f));
-    printw("Read firmware from %s", FIRMWARE_PATH);
+    printf("Read firmware from %s", "C:/Users/Nickl/.platformio/packages/tool-simavr/include/simav");
 
-    if (elf_read_firmware(FIRMWARE_PATH, &f) < 0) {
-        printw("Failed to read firmware");
+    if (elf_read_firmware("C:/Users/Nickl/.platformio/packages/tool-simavr/include/simav", &f) < 0) {
+        printf("Failed to read firmware");
         exit(1);
     }
-    printw("Load firmware..");
+    printf("Load firmware..");
     avr_load_firmware(avr, &f);
 
-    printw("Firmware loaded successfully.");
+    printf("Firmware loaded successfully.");
 #if 0
-    printw("Initializing VCD...");
+    printf("Initializing VCD...");
 
     int vcd_result = avr_vcd_init(avr, "trace.vcd", &vcd_file, 10000);
     if (vcd_result != 0) {
-        printw(stderr, "Failed to initialize VCD, error code: %d", vcd_result);
+        printf(stderr, "Failed to initialize VCD, error code: %d", vcd_result);
         exit(1);
     }
 
 
-    printw("VCD initialized successfully.");
+    printf("VCD initialized successfully.");
     avr_vcd_add_signal(&vcd_file, avr_io_getirq(avr, AVR_IOCTL_IOPORT_GETIRQ('B'), 3), 1, "BTN");
     avr_vcd_add_signal(&vcd_file, avr_io_getirq(avr, AVR_IOCTL_IOPORT_GETIRQ('B'), 1), 1, "LED");
     avr_vcd_add_signal(&vcd_file, avr_io_getirq(avr, AVR_IOCTL_IOPORT_GETIRQ('B'), 2), 1, "DEBUG");
@@ -95,18 +79,18 @@ void init_simavr(void) {
     avr_irq_t *button_pressed_irq = avr_io_getirq(avr, AVR_IOCTL_IOPORT_GETIRQ('B'), 5);
 
     if (!button_irq || !button_pressed_irq) {
-        printw("Failed to get IRQ");
+        printf("Failed to get IRQ");
         exit(1);
     }
 
-    printw("AVR simulator setup complete.");
+    printf("AVR simulator setup complete.");
 }
 
 void tearDown(void) {
-    printw("\nTerminating AVR simulator...");
+    printf("\nTerminating AVR simulator...");
     //avr_vcd_stop(&vcd_file);
     avr_terminate(avr);
-    printw("AVR simulator terminated.");
+    printf("AVR simulator terminated.");
 }
 
 void run_avr_for_cycles(uint32_t cycles) {
@@ -118,13 +102,13 @@ void run_avr_for_cycles(uint32_t cycles) {
 void parse_vcd(const char *filename) {
     FILE *file = fopen(filename, "r");
     if (!file) {
-        printw(stderr, "Failed to open VCD file: %s", filename);
+        printf(stderr, "Failed to open VCD file: %s", filename);
         return;
     }
 
     char line[256];
     while (fgets(line, sizeof(line), file)) {
-        printw("%s", line);
+        printf("%s", line);
     }
 
     fclose(file);
@@ -138,53 +122,48 @@ void print_mem (void) {
     int16_t counter = 0;
     while (counter < 254) {
         if (avr->data[counter] > 0) {
-            move(5,3);
-            printw("(%i) %hu ", counter, avr->data[counter]);
+            printf("(%i) %hu ", counter, avr->data[counter]);
         } else {
-            move(5,3);
-            printw("%hu ", avr->data[counter]);
+            printf("%hu ", avr->data[counter]);
         }
         
         counter++;
     }
-    printw("");
+    printf("");
 }
 void report() {
-    move(10,3);
-    printw("Button_state: %s, PWM : %hu", button_pressed_irq->value ? "Down": "Up", read_ocr0a(avr));
+    printf("Button_state: %s, PWM : %hu", button_pressed_irq->value ? "Down": "Up", read_ocr0a(avr));
 
 }
 
 void read_button() {
     int ch;
     ch = getch();
-    if (ch != ERR) {
+    if (ch != -1) {
         if (ch == 'A' || ch == 'a') {
             if (!button_pressed) {
-                printw("A key was pressed.");
+                printf("A key was pressed.");
                 avr_raise_irq(button_pressed_irq, 1);
             } 
             
         } else {
             if (button_pressed) {
-                printw("A key was released.");
+                printf("A key was released.");
                 avr_raise_irq(button_pressed_irq, 0);
             } 
         }
     
     }
     
-    refresh();
     
 }
 
 
 int main(void) {
-    init_ui();
-    printw("UI initiated");
     
+    printf("Simavr initiating");
     init_simavr();
-    printw("Simavr initiated");
+    printf("Simavr initiated");
     
     while (1) {
         report();

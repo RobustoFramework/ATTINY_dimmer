@@ -1,14 +1,11 @@
 Import("env")
 
-
-
+import os
+project_package_dir = env.subst('$PROJECT_PACKAGES_DIR')
 # Ensure the correct libraries and include paths are used
+print(os.path.join(project_package_dir, "tool-simavr", "include", "simavr").replace("\\", "/"))
 env.Append(
-    CPPPATH=["/usr/local/include/libelf/", "/usr/local/opt/ncurses/include"],
-    LIBPATH=["/usr/local/opt/ncurses/lib", "/usr/local/lib/"],
-    LIBS=["elf", "ncurses", "simavr"]
+    CPPPATH=[os.path.join(project_package_dir, "tool-simavr", "include", "simavr").replace("\\", "/")],
+    LIBPATH=[os.path.join(project_package_dir, "tool-simavr", "lib").replace("\\", "/")],
+    LIBS=["elf", "simavr"]
 )
-
-
-
-env.Append(LINKFLAGS=["-L/usr/local/lib", "-lsimavr", "-lsimavrparts", "-lelf"])

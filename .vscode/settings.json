@@ -28,6 +28,7 @@
         "sim_cycle_timers.h": "c",
         "unistd.h": "c",
         "sim_elf.h": "c",
-        "ncurses.h": "c"
+        "ncurses.h": "c",
+        "sim_irq.h": "c"
     }
 }
