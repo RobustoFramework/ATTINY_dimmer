@@ -1,5 +1,6 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
+#include <util/delay.h>
 
 #define BUTTON_PIN PB3
 #define LED_PIN PB1
@@ -13,7 +14,7 @@ volatile uint16_t press_duration = 0;
 volatile uint8_t button_pressed = 0;
 volatile int8_t pwm_value = 0;
 volatile uint8_t old_pwm_value = MAX_PWM / 2; // Set initial value to something in the middle?
-volatile int8_t change = 5; // This will change to a negative value when dimming
+volatile int8_t change = 1; // This will change to a negative value when dimming
 volatile uint8_t wait_left = 0; // Left to wait at the ends of the range
 volatile uint8_t waiting = 0; // Are we waiting?
 
@@ -38,6 +39,7 @@ void setup()
 
 void loop()
 {
+    _delay_ms(10);
     if (PINB & (1 << BUTTON_PIN))
     {
         // Button pressed
