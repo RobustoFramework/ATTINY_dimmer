@@ -106,6 +106,14 @@ void run_avr_for_cycles(uint32_t cycles)
     }
 }
 
+uint16_t read_press_duration(avr_t *avr)
+{
+    
+    uint16_t result = 0;
+    memcpy(&result, avr->data + 99, sizeof(result));
+    return result;
+}
+
 uint8_t read_ocr0a(avr_t *avr)
 {
     return avr->data[OCR0A_ADDR];
@@ -127,11 +135,11 @@ void print_mem(void)
 
         counter++;
     }
-    printf("\n");
+    printf("End.\n");
 }
 void report()
 {
-    printf("Button_state: %s, PWM : %hu.\n", button_pressed_irq->value ? "Down" : "Up", read_ocr0a(avr));
+    printf("Button_state: %s, PWM : %hu, duration: %i ticks\n", button_pressed_irq->value ? "Down" : "Up", read_ocr0a(avr),  read_press_duration(avr));
     // Note the apparent necessity to end outputs with a newline for them to flush.
 }
 void init_sdl()
@@ -164,9 +172,15 @@ void read_button()
             quit_client(0);
         }
         // Check if the event is a key down event
+        if (e.key.keysym.sym == 109)
+        {
+            if (e.type == SDL_KEYDOWN) {
+                print_mem();
+            }
+        } else
         if (e.type == SDL_KEYDOWN && !buttondown)
         {
-            printf("The key you pressed was %s\n", SDL_GetKeyName(e.key.keysym.sym));
+            printf("The key you pressed was %s, %i\n", SDL_GetKeyName(e.key.keysym.sym), e.key.keysym.sym);
             avr_raise_irq(button_irq, 1);
             buttondown = true;
         }

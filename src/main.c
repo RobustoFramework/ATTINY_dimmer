@@ -1,22 +1,24 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <util/delay.h>
+#include <avr/power.h>
+#include <avr/sleep.h>
 
 #define BUTTON_PIN PB3
 #define LED_PIN PB1
 #define DEBUG_PIN PB2
 #define BUTTON_PRESSED_PIN PB5
 #define LONG_PRESS_DURATION 100
-#define LIMIT_WAIT 5
+#define LIMIT_WAIT 100
 #define MAX_PWM 255
 
 volatile uint16_t press_duration = 0;
 volatile uint8_t button_pressed = 0;
 volatile int8_t pwm_value = 0;
 volatile uint8_t old_pwm_value = MAX_PWM / 2; // Set initial value to something in the middle?
-volatile int8_t change = 1; // This will change to a negative value when dimming
-volatile uint8_t wait_left = 0; // Left to wait at the ends of the range
-volatile uint8_t waiting = 0; // Are we waiting?
+volatile int8_t change = 1;                   // This will change to a negative value when dimming
+volatile uint8_t wait_left = 0;               // Left to wait at the ends of the range
+volatile uint8_t waiting = 0;                 // Are we waiting?
 
 void setup()
 {
@@ -33,13 +35,27 @@ void setup()
     TCCR0B |= (1 << CS01) | (1 << CS00);   // Prescaler 64
     OCR0A = pwm_value;                     // Initial PWM duty cycle
 
+    TCCR1 = 0;
+    TCNT1 = 0;         // zero the timer
+    GTCCR = _BV(PSR1); // reset the prescaler
+    // Set CTC mode (Clear Timer on Compare Match)
+    TCCR1 |= (1 << CTC1);
+
+    // Set prescaler to 128 (CS13:CS11:CS10 = 2048)
+    TCCR1 |= (1 << CS13) | (1 << CS11) | (1 << CS10);
+    // Set OCR1C for 10ms interval
+    OCR1C = 20; // 156 cycles for 10ms (0-based counting)
+
+    // Enable Timer/Counter1 Output Compare Match A interrupt
+    TIMSK |= (1 << OCIE1A);
+
     // Enable global interrupts
     sei();
 }
 
 void loop()
 {
-    _delay_ms(10);
+
     if (PINB & (1 << BUTTON_PIN))
     {
         // Button pressed
@@ -52,40 +68,45 @@ void loop()
         }
         press_duration++;
         if (press_duration >= LONG_PRESS_DURATION)
-        { 
+        {
             // Long press
-            if (waiting) {
-                if (!wait_left) {
+            if (waiting)
+            {
+                if (!wait_left)
+                {
                     // We are done waiting, reverse direction
                     change = -change;
                     pwm_value += change;
                     waiting = 0;
                 }
-                else {
+                else
+                {
                     wait_left--;
                 }
-            } else {
+            }
+            else
+            {
 
-                if (pwm_value + change > MAX_PWM)
+                if (pwm_value + change >= MAX_PWM)
                 {
                     // We seem to be on the top limit
                     pwm_value = MAX_PWM;
                     waiting = 1;
                     wait_left = LIMIT_WAIT;
-                    
-                } else
-                if (pwm_value + change < 0)
+                }
+                else if (pwm_value + change <= 0)
                 {
                     // We seem to be on the bottom limit
                     pwm_value = 0;
                     waiting = 1;
                     wait_left = LIMIT_WAIT;
-                } else {
+                }
+                else
+                {
                     pwm_value += change;
                 }
                 OCR0A = pwm_value; // Update PWM duty cycle
             }
-                  
         }
     }
     else
@@ -95,6 +116,7 @@ void loop()
         {
             button_pressed = 0;
             wait_left = 0;
+            waiting = 0;
             PORTB &= ~(1 << BUTTON_PRESSED_PIN); // Indicate button released
             PORTB &= ~(1 << DEBUG_PIN);          // Set DEBUG pin low
 
@@ -106,11 +128,15 @@ void loop()
                 {
                     old_pwm_value = pwm_value;
                     pwm_value = 0;
-                } else {
+                }
+                else
+                {
                     pwm_value = old_pwm_value;
                 }
                 OCR0A = pwm_value; // Update PWM duty cycle
-            } else {
+            }
+            else
+            {
                 // Change direction for the next log press
                 change = -change;
             }
@@ -119,13 +145,17 @@ void loop()
     }
 }
 
+ISR(TIMER1_COMPA_vect)
+{
+    loop();
+}
+
 int main(void)
 {
     setup();
     while (1)
     {
-        loop();
+        // Main loop code
     }
-
     return 0;
 }
