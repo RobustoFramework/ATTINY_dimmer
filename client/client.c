@@ -18,7 +18,7 @@
 #endif
 
 #define ATTINY95_IO_OFFSET 0x22
-#define OCR0A_ADDR ATTINY95_IO_OFFSET + 0x27 // OCR0A address for ATtiny85
+#define OCR0B_ADDR ATTINY95_IO_OFFSET + 0x26 // OCR0B address for ATtiny85
 
 avr_t *avr;
 char *sim_log_prefix;
@@ -71,12 +71,14 @@ void init_simavr(void)
 
     button_irq = avr_io_getirq(avr, AVR_IOCTL_IOPORT_GETIRQ('B'), 3);
     button_pressed_irq = avr_io_getirq(avr, AVR_IOCTL_IOPORT_GETIRQ('B'), 5);
-
+    
     if (!button_irq || !button_pressed_irq)
     {
         printf("Failed to get IRQ\n");
         exit(1);
     }
+
+    avr_raise_irq(button_irq, 1);
 
     printf("AVR simulator setup complete.\n");
 }
@@ -110,13 +112,13 @@ uint16_t read_press_duration(avr_t *avr)
 {
     
     uint16_t result = 0;
-    memcpy(&result, avr->data + 99, sizeof(result));
+    memcpy(&result, avr->data + 100, sizeof(result));
     return result;
 }
 
 uint8_t read_ocr0a(avr_t *avr)
 {
-    return avr->data[OCR0A_ADDR];
+    return avr->data[OCR0B_ADDR];
 }
 
 void print_mem(void)
@@ -139,7 +141,7 @@ void print_mem(void)
 }
 void report()
 {
-    printf("Button_state: %s, PWM : %hu, duration: %i ticks\n", button_pressed_irq->value ? "Down" : "Up", read_ocr0a(avr),  read_press_duration(avr));
+    printf("Button_state: %s, PWM : %hu, duration: %u ticks\n", button_pressed_irq->value ? "Down" : "Up", read_ocr0a(avr),  read_press_duration(avr));
     // Note the apparent necessity to end outputs with a newline for them to flush.
 }
 void init_sdl()
@@ -164,7 +166,7 @@ void read_button()
 {
 
     // Poll events
-    if (SDL_PollEvent(&e))
+    while (SDL_PollEvent(&e))
     {
         // Check if the event is a quit event
         if (e.type == SDL_QUIT)
@@ -181,13 +183,13 @@ void read_button()
         if (e.type == SDL_KEYDOWN && !buttondown)
         {
             printf("The key you pressed was %s, %i\n", SDL_GetKeyName(e.key.keysym.sym), e.key.keysym.sym);
-            avr_raise_irq(button_irq, 1);
+            avr_raise_irq(button_irq, 0);
             buttondown = true;
         }
         else if (e.type == SDL_KEYUP && buttondown)
         {
             printf("The key let go was %s\n", SDL_GetKeyName(e.key.keysym.sym));
-            avr_raise_irq(button_irq, 0);
+            avr_raise_irq(button_irq, 1);
             buttondown = false;
         }
     }
@@ -197,7 +199,7 @@ void read_button()
 void* avr_runner(void* arg) {
     while (keep_running) {
         run_avr_for_cycles(100000);
-        usleep(10);  // Optional small delay to avoid busy-waiting
+        //usleep(10);  // Optional small delay to avoid busy-waiting
     }
     return NULL;
 }
@@ -223,7 +225,6 @@ int main(void)
     printf("SDL initiated\n");
     while (1)
     {
-        
         report();
         SDL_Delay(402);
         read_button();

@@ -6,15 +6,14 @@
 
 #define BUTTON_PIN PB3
 #define LED_PIN PB1
-#define DEBUG_PIN PB2
 #define BUTTON_PRESSED_PIN PB5
-#define LONG_PRESS_DURATION 100
-#define LIMIT_WAIT 100
-#define MAX_PWM 255
+#define LONG_PRESS_DURATION 100U
+#define LIMIT_WAIT 150U
+#define MAX_PWM 255U
 
 volatile uint16_t press_duration = 0;
 volatile uint8_t button_pressed = 0;
-volatile int8_t pwm_value = 0;
+volatile uint8_t pwm_value = 0;
 volatile uint8_t old_pwm_value = MAX_PWM / 2; // Set initial value to something in the middle?
 volatile int8_t change = 1;                   // This will change to a negative value when dimming
 volatile uint8_t wait_left = 0;               // Left to wait at the ends of the range
@@ -23,17 +22,17 @@ volatile uint8_t waiting = 0;                 // Are we waiting?
 void setup()
 {
     // Set LED and debug pins as outputs
-    DDRB |= (1 << LED_PIN) | (1 << DEBUG_PIN) | (1 << BUTTON_PRESSED_PIN);
+    DDRB |= (1 << LED_PIN) | (1 << BUTTON_PRESSED_PIN);
 
     // Set button pin as input
     DDRB &= ~(1 << BUTTON_PIN);
-    PORTB &= ~(1 << BUTTON_PIN); // Explicitly set resistor
+    PORTB &= (1 << BUTTON_PIN); // Explicitly set resistor
 
     // Set up Timer0 for PWM
     TCCR0A |= (1 << WGM01) | (1 << WGM00); // Fast PWM mode
-    TCCR0A |= (1 << COM0A1);               // Clear OC0A on compare match
+    TCCR0A |= (1 << COM0B1);               // Clear OC0A on compare match
     TCCR0B |= (1 << CS01) | (1 << CS00);   // Prescaler 64
-    OCR0A = pwm_value;                     // Initial PWM duty cycle
+    OCR0B = pwm_value;                     // Initial PWM duty cycle
 
     TCCR1 = 0;
     TCNT1 = 0;         // zero the timer
@@ -44,7 +43,7 @@ void setup()
     // Set prescaler to 128 (CS13:CS11:CS10 = 2048)
     TCCR1 |= (1 << CS13) | (1 << CS11) | (1 << CS10);
     // Set OCR1C for 10ms interval
-    OCR1C = 20; // 156 cycles for 10ms (0-based counting)
+    OCR1C = 200 ; // 156 cycles for 10ms (0-based counting)
 
     // Enable Timer/Counter1 Output Compare Match A interrupt
     TIMSK |= (1 << OCIE1A);
@@ -56,7 +55,7 @@ void setup()
 void loop()
 {
 
-    if (PINB & (1 << BUTTON_PIN))
+    if (!(PINB & (1 << BUTTON_PIN)))
     {
         // Button pressed
         if (!button_pressed)
@@ -64,7 +63,6 @@ void loop()
             button_pressed = 1;
             press_duration = 0;
             PORTB |= (1 << BUTTON_PRESSED_PIN); // Indicate button pressed
-            PORTB |= (1 << DEBUG_PIN);          // Set DEBUG pin high
         }
         press_duration++;
         if (press_duration >= LONG_PRESS_DURATION)
@@ -72,6 +70,7 @@ void loop()
             // Long press
             if (waiting)
             {
+                // Waiting either at the top limit or bottom limit
                 if (!wait_left)
                 {
                     // We are done waiting, reverse direction
@@ -105,7 +104,7 @@ void loop()
                 {
                     pwm_value += change;
                 }
-                OCR0A = pwm_value; // Update PWM duty cycle
+                OCR0B = pwm_value; // Update PWM duty cycle
             }
         }
     }
@@ -115,13 +114,14 @@ void loop()
         if (button_pressed)
         {
             button_pressed = 0;
-            wait_left = 0;
-            waiting = 0;
+            
             PORTB &= ~(1 << BUTTON_PRESSED_PIN); // Indicate button released
-            PORTB &= ~(1 << DEBUG_PIN);          // Set DEBUG pin low
 
             if (press_duration < LONG_PRESS_DURATION)
-            {                            // Short press
+            {   
+                
+
+                // Short press
                 PORTB ^= (1 << LED_PIN); // Toggle LED
                 // So we want on or off
                 if (pwm_value > 0)
@@ -133,13 +133,18 @@ void loop()
                 {
                     pwm_value = old_pwm_value;
                 }
-                OCR0A = pwm_value; // Update PWM duty cycle
+                OCR0B = pwm_value; // Update PWM duty cycle
             }
-            else
+            else 
             {
-                // Change direction for the next log press
+                if (waiting) {
+                    // If we were waiting at an extreme, here is for not waiting
+                    waiting = 0;
+                    wait_left = 0;
+                }   
+                // Change direction for the next long press
                 change = -change;
-            }
+            } 
             press_duration = 0; // Reset duration
         }
     }
