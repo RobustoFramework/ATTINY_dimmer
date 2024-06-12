@@ -7,8 +7,8 @@
 #define BUTTON_PIN PB3
 #define LED_PIN PB1
 #define BUTTON_PRESSED_PIN PB5
-#define LONG_PRESS_DURATION 100U
-#define LIMIT_WAIT 150U
+#define LONG_PRESS_DURATION 200U
+#define LIMIT_WAIT 200U
 #define MAX_PWM 255U
 
 volatile uint16_t press_duration = 0;
@@ -43,7 +43,7 @@ void setup()
     // Set prescaler to 128 (CS13:CS11:CS10 = 2048)
     TCCR1 |= (1 << CS13) | (1 << CS11) | (1 << CS10);
     // Set OCR1C for 10ms interval
-    OCR1C = 200 ; // 156 cycles for 10ms (0-based counting)
+    OCR1C = 100; // 200 cycles for 10ms (0-based counting)
 
     // Enable Timer/Counter1 Output Compare Match A interrupt
     TIMSK |= (1 << OCIE1A);
