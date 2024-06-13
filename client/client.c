@@ -118,7 +118,7 @@ uint16_t read_press_duration(avr_t *avr)
 
 uint8_t read_ocr0a(avr_t *avr)
 {
-    return avr->data[OCR0A_ADDR];
+    return 255-avr->data[OCR0A_ADDR];
 }
 
 void print_mem(void)

@@ -6,9 +6,8 @@
 
 #define BUTTON_PIN PB3
 #define LED_PIN PB0
-#define BUTTON_PRESSED_PIN PB5
-#define LONG_PRESS_DURATION 200U
-#define LIMIT_WAIT 200U
+#define LONG_PRESS_DURATION 70U
+#define LIMIT_WAIT 150U
 #define MAX_PWM 255U
 #define DEFAULT_PWM (MAX_PWM / 2) -1
 volatile uint16_t press_duration = 0;
@@ -22,23 +21,33 @@ volatile uint8_t waiting = 0;                 // Are we waiting?
 void setup()
 {
     // Set LED and debug pins as outputs
-    DDRB |= (1 << LED_PIN) | (1 << BUTTON_PRESSED_PIN);
+    DDRB |= (1 << LED_PIN); // Set pin as output
+    PORTB |= (1 << LED_PIN); // Pull up LED_PIN to turn LED off
+
+    // Set up Timer0 for PWM on PB0
+    TCCR0A |= (1 << WGM00) | (1 << WGM01); // Fast PWM mode
+    TCCR0A |= (1 << COM0A1);               // Non-inverting mode on OC0A (PB0)
+    TCCR0B |= (1 << CS01) | (1 << CS00);   // Prescaler 64
+    OCR0A = MAX_PWM - pwm_value;           // Initial PWM duty cycle
+
+    // Set up Timer1 for timing interrupts
+    TCCR1 = 0;
+    TCNT1 = 0;         // Zero the timer
+    GTCCR = _BV(PSR1); // Reset the prescaler
+    // Set CTC mode (Clear Timer on Compare Match)
+    TCCR1 |= (1 << CTC1);
+
+    // Set prescaler to 128 (CS13:CS11:CS10 = 2048)
+    TCCR1 |= (1 << CS13) | (1 << CS11) | (1 << CS10);
+    // Set OCR1C for 10ms interval
+    OCR1C = 200; // 200 cycles for 10ms (0-based counting)
+
+    // Enable Timer/Counter1 Output Compare Match A interrupt
+    TIMSK |= (1 << OCIE1A);
 
     // Set button pin as input
     DDRB &= ~(1 << BUTTON_PIN);
     PORTB &= (1 << BUTTON_PIN); // Explicitly set resistor
-
-    // Set up Timer1 for PWM on PB0
-    TCCR1 |= (1 << PWM1A);      // Enable PWM mode for Timer1
-    TCCR1 |= (1 << COM1A1);     // Non-inverting mode on OC1A (PB0)
-    TCCR1 |= (1 << CS11) | (1 << CS10); // Prescaler of 64
-    OCR1A = pwm_value;          // Initial PWM duty cycle
-
-    // Set up Timer0 for timing interrupts
-    TCCR0A |= (1 << WGM01);     // CTC mode
-    TCCR0B |= (1 << CS02) | (1 << CS00); // Prescaler of 1024
-    OCR0A = 200;            // Compare match value for approximately 10ms interrupt interval
-    TIMSK |= (1 << OCIE0A);     // Enable Timer/Counter0 Output Compare Match A interrupt
 
     // Enable global interrupts
     sei();
@@ -53,7 +62,6 @@ void loop()
         {
             button_pressed = 1;
             press_duration = 0;
-            PORTB |= (1 << BUTTON_PRESSED_PIN); // Indicate button pressed
         }
         press_duration++;
         if (press_duration >= LONG_PRESS_DURATION)
@@ -94,7 +102,7 @@ void loop()
                 {
                     pwm_value += change;
                 }
-                OCR1A = pwm_value; // Update PWM duty cycle
+                OCR0A = MAX_PWM - pwm_value; // Update PWM duty cycle
             }
         }
     }
@@ -105,8 +113,6 @@ void loop()
         {
             button_pressed = 0;
             
-            PORTB &= ~(1 << BUTTON_PRESSED_PIN); // Indicate button released
-
             if (press_duration < LONG_PRESS_DURATION)
             {   
                 // So we want on or off
@@ -120,7 +126,7 @@ void loop()
                     pwm_value = old_pwm_value;
                 }
                 
-                OCR1A = pwm_value; // Update PWM duty cycle
+                OCR0A = MAX_PWM - pwm_value; // Update PWM duty cycle
             }
             else 
             {
@@ -137,7 +143,7 @@ void loop()
     }
 }
 
-ISR(TIMER0_COMPA_vect)
+ISR(TIMER1_COMPA_vect)
 {
     loop();
 }
