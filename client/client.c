@@ -17,8 +17,8 @@
 #waning "This is currently only tested on a Mac, dude."
 #endif
 
-#define ATTINY95_IO_OFFSET 0x22
-#define OCR0B_ADDR ATTINY95_IO_OFFSET + 0x26 // OCR0B address for ATtiny85
+
+#define OCR0A_ADDR 103 // OCR0A address for ATtiny85
 
 avr_t *avr;
 char *sim_log_prefix;
@@ -118,7 +118,7 @@ uint16_t read_press_duration(avr_t *avr)
 
 uint8_t read_ocr0a(avr_t *avr)
 {
-    return avr->data[OCR0B_ADDR];
+    return avr->data[OCR0A_ADDR];
 }
 
 void print_mem(void)
@@ -182,14 +182,15 @@ void read_button()
         } else
         if (e.type == SDL_KEYDOWN && !buttondown)
         {
-            printf("The key you pressed was %s, %i\n", SDL_GetKeyName(e.key.keysym.sym), e.key.keysym.sym);
             avr_raise_irq(button_irq, 0);
+            //printf("The key you pressed was %s, %i\n", SDL_GetKeyName(e.key.keysym.sym), e.key.keysym.sym);
             buttondown = true;
         }
         else if (e.type == SDL_KEYUP && buttondown)
         {
-            printf("The key let go was %s\n", SDL_GetKeyName(e.key.keysym.sym));
             avr_raise_irq(button_irq, 1);
+            //printf("The key let go was %s\n", SDL_GetKeyName(e.key.keysym.sym));
+
             buttondown = false;
         }
     }
