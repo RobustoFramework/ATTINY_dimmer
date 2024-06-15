@@ -1,0 +1,16 @@
+$timescale 10ns $end
+$scope module logic $end
+$var wire 1 ! BTN $end
+$var wire 1 " LED $end
+$var wire 1 # DEBUG $end
+$var wire 1 $ BUTTON_PRESSED $end
+$upscope $end
+$enddefinitions $end
+$dumpvars
+x!
+x"
+x#
+x$
+$end
+#13800
+1!
