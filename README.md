@@ -1,6 +1,6 @@
 # Dimmer
 
-This project creates a dimmer based on an ATTINY85.
+This project creates a dimmer based on an ATTINY85 using PlatformIO.
 
 Features:
 * Holding button long will gradually raise and lower power
