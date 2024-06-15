@@ -4,24 +4,40 @@
 #include <avr/power.h>
 #include <avr/sleep.h>
 
+/* GPI of the button that controls the dunne*/
 #define BUTTON_PIN PB3
+/* GPIO of the led we control via the PWM */
 #define LED_PIN PB0
+/**
+ * @brief Timings - all timings are in counts of timer interrupt (10 ms currently)
+ */
+/* How long we need to press for detailed dimming */
 #define LONG_PRESS_DURATION 70U
+/* How long to wait on the max and minimum levels */
 #define LIMIT_WAIT 150U
+/* Max allowed PWM setting */
 #define MAX_PWM 255U
-#define DEFAULT_PWM (MAX_PWM / 2) -1
-volatile uint16_t press_duration = 0;
-volatile uint8_t button_pressed = 0;
-volatile uint8_t pwm_value = 0;
-volatile uint8_t old_pwm_value = DEFAULT_PWM; // Set initial value to something in the middle?
+/* Level considered high power */
+#define HIGH_PWM 200U
+/* Max time on high power 30000 */
+#define MAX_HIGH_PWM 30000UL 
+/* The PWM that we end up on per default (like after a long time of high power) */
+#define DEFAULT_PWM (MAX_PWM / 2) - 30
+
+volatile uint16_t press_duration = 0;         // How long we've pressed so far
+volatile uint8_t button_pressed = 0;          // Was a button pressed the last iteration
+volatile uint8_t pwm_value = 0;               // The value that we set the PWM to (note that this actuallyis being inverted = MAX_PWM - pwm_value)
+volatile uint8_t old_pwm_value = DEFAULT_PWM; // Set old value to something in the middle?
 volatile int8_t change = 1;                   // This will change to a negative value when dimming
 volatile uint8_t wait_left = 0;               // Left to wait at the ends of the range
 volatile uint8_t waiting = 0;                 // Are we waiting?
+volatile uint32_t high_left = 0;              // Left until we automatically power down from high power
+volatile int8_t skip = 0;                     // This will change to a negative value when dimming
 
 void setup()
 {
     // Set LED and debug pins as outputs
-    DDRB |= (1 << LED_PIN); // Set pin as output
+    DDRB |= (1 << LED_PIN);  // Set pin as output
     PORTB |= (1 << LED_PIN); // Pull up LED_PIN to turn LED off
 
     // Set up Timer0 for PWM on PB0
@@ -55,8 +71,28 @@ void setup()
 
 void loop()
 {
+
+    if (high_left == 1)
+    {
+        
+        pwm_value = DEFAULT_PWM;
+        OCR0A = MAX_PWM - pwm_value;
+        change = 1;
+        high_left = 0;
+    }
+    else if ((high_left == 0) && (pwm_value > HIGH_PWM))
+    {
+        // Need to protect the dimmer from overheating, we allow about five minutes of max power until we automatically go down to MAX_HIGH_PWM
+        high_left = MAX_HIGH_PWM;
+    }
+    else
+    {
+        high_left--;
+    }
+
     if (!(PINB & (1 << BUTTON_PIN)))
     {
+        high_left = 0;
         // Button pressed
         if (!button_pressed)
         {
@@ -75,6 +111,7 @@ void loop()
                     // We are done waiting, reverse direction
                     change = -change;
                     pwm_value += change;
+
                     waiting = 0;
                 }
                 else
@@ -84,20 +121,32 @@ void loop()
             }
             else
             {
-                if (pwm_value + change >= MAX_PWM)
-                {
-                    // We seem to be on the top limit
-                    pwm_value = MAX_PWM;
-                    waiting = 1;
-                    wait_left = LIMIT_WAIT;
-                }
-                else if (pwm_value + change <= 0)
+                if (pwm_value + change <= 0)
                 {
                     // We seem to be on the bottom limit
                     pwm_value = 0;
                     waiting = 1;
                     wait_left = LIMIT_WAIT;
+                } else
+                if (pwm_value < 30)
+                {
+                    if (skip)
+                    {
+                        skip = 0;
+                    }
+                    else
+                    {
+                        pwm_value += change;
+                        skip = 1;
+                    }
                 }
+                else if (pwm_value + change >= MAX_PWM)
+                {
+                    // We seem to be on the top limit
+                    pwm_value = MAX_PWM;
+                    waiting = 1;
+                    wait_left = LIMIT_WAIT;
+                }              
                 else
                 {
                     pwm_value += change;
@@ -112,9 +161,9 @@ void loop()
         if (button_pressed)
         {
             button_pressed = 0;
-            
+
             if (press_duration < LONG_PRESS_DURATION)
-            {   
+            {
                 // So we want on or off
                 if (pwm_value > 0)
                 {
@@ -125,19 +174,20 @@ void loop()
                 {
                     pwm_value = old_pwm_value;
                 }
-                
+
                 OCR0A = MAX_PWM - pwm_value; // Update PWM duty cycle
             }
-            else 
+            else
             {
-                if (waiting) {
+                if (waiting)
+                {
                     // If we were waiting at an extreme, here is for not waiting
                     waiting = 0;
                     wait_left = 0;
-                }   
+                }
                 // Change direction for the next long press
                 change = -change;
-            } 
+            }
             press_duration = 0; // Reset duration
         }
     }

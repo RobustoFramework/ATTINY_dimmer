@@ -18,7 +18,7 @@
 #endif
 
 
-#define OCR0A_ADDR 103 // OCR0A address for ATtiny85
+#define OCR0A_ADDR 108 // OCR0A address for ATtiny85
 
 avr_t *avr;
 char *sim_log_prefix;
@@ -112,13 +112,13 @@ uint16_t read_press_duration(avr_t *avr)
 {
     
     uint16_t result = 0;
-    memcpy(&result, avr->data + 100, sizeof(result));
+    memcpy(&result, avr->data + 101, sizeof(result));
     return result;
 }
 
 uint8_t read_ocr0a(avr_t *avr)
 {
-    return 255-avr->data[OCR0A_ADDR];
+    return avr->data[OCR0A_ADDR];
 }
 
 void print_mem(void)
