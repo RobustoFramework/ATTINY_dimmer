@@ -12,6 +12,7 @@ Features:
   * Installing 
     * simavr (brew on Mac, on Windows from https://github.com/maxgerhardt/simavr/releases, apt-get on Linux)
     * SDL2 on host machine (brew on Mac, using MingW pacman on windows, apt-get on Linux)
+    * Double-check the paths in the platformio.ini, especially on Windows.
   * Running: 
     * First build the .elf: ```pio run  -e attiny85```
     * Then run the client: ```pio run -t exec -e client_windows -vvv``` or ```pio run -t exec -e client_macos -vvv```
