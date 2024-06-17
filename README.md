@@ -20,7 +20,7 @@ Features:
     * Outputs resulting PWM values and duration in own thread
       * Takes info from memory directly
   * Dumps memory when "m" is pressed to make it easier to find variables
-  * _Can be much too fast on fast machines, please add pauses inbetween run_avr_for_cycles and/or lessen the number of cycles between pauses
+  * _Can be much too fast on fast machines, please add pauses inbetween run_avr_for_cycles and/or lessen the number of cycles between pauses_
 * Unity testing
   * _Fails_ - test/main_test.c not aligned with the source currently 
   * assumes very basic testing code with buttons that react
