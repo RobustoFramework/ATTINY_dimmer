@@ -13,9 +13,7 @@
 
 #include <SDL2/SDL.h>
 
-#ifndef __APPLE__
-#waning "This is currently only tested on a Mac, dude."
-#endif
+
 
 
 #define OCR0A_ADDR 108 // OCR0A address for ATtiny85
@@ -183,13 +181,13 @@ void read_button()
         if (e.type == SDL_KEYDOWN && !buttondown)
         {
             avr_raise_irq(button_irq, 0);
-            //printf("The key you pressed was %s, %i\n", SDL_GetKeyName(e.key.keysym.sym), e.key.keysym.sym);
+            printf("The key you pressed was %s, %i\n", SDL_GetKeyName(e.key.keysym.sym), e.key.keysym.sym);
             buttondown = true;
         }
         else if (e.type == SDL_KEYUP && buttondown)
         {
             avr_raise_irq(button_irq, 1);
-            //printf("The key let go was %s\n", SDL_GetKeyName(e.key.keysym.sym));
+            printf("The key let go was %s\n", SDL_GetKeyName(e.key.keysym.sym));
 
             buttondown = false;
         }
@@ -206,7 +204,11 @@ void* avr_runner(void* arg) {
 }
 
 
+#ifndef __APPLE__
+int main(int argc, char** argv)
+#else
 int main(void)
+#endif
 {
     setvbuf(stdout, NULL, _IONBF, 0);
     setvbuf(stderr, NULL, _IONBF, 0);

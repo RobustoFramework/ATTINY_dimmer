@@ -8,12 +8,13 @@ Features:
 * Has a timeout on max power, will lower power to not overheat
 * Short button pushes shuts off, or goes back to last setting<br/><br/>
 
-* Simavr simulation (MacOS/Linux, only tested on MacOs)
+* SimAVR simulation (MacOS/Windows/Linux, only tested on MacOs/Windows)
   * Installing 
-    * Install SDL2 on host machine 
+    * simavr (brew on Mac, on Windows from https://github.com/maxgerhardt/simavr/releases, apt-get on Linux)
+    * SDL2 on host machine (brew on Mac, using MingW pacman on windows, apt-get on Linux)
   * Running: 
     * First build the .elf: ```pio run  -e attiny85```
-    * Then run the client: ```pio run -t exec -e client -vvv```
+    * Then run the client: ```pio run -t exec -e client_windows -vvv``` or ```pio run -t exec -e client_macos -vvv```
   * Features
     * Takes keypresses as input (try holding down any key)
     * Outputs resulting PWM values and duration in own thread
